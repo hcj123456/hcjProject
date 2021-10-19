@@ -43,9 +43,19 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'drf_yasg',
+    # 'projects.apps.ProjectsConfig',
+    # 'interfaces.apps.InterfacesConfig',
+    # 'users.apps.UsersConfig',
     'projects.apps.ProjectsConfig',
     'interfaces.apps.InterfacesConfig',
+    'configures.apps.ConfiguresConfig',
+    'testcases.apps.TestcasesConfig',
+    'testsuites.apps.TestsuitesConfig',
+    'envs.apps.EnvsConfig',
+    'reports.apps.ReportsConfig',
+    'debugtalks.apps.DebugtalksConfig',
     'users.apps.UsersConfig',
+    'summary.apps.SummaryConfig',
 ]
 
 MIDDLEWARE = [
@@ -232,3 +242,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 # CORS_ORIGIN_WHITELIST = []
 
 CORS_ALLOW_CREDENTIALS = True
+
+REPORT_DIR = os.path.join(BASE_DIR, 'reports')
+SUITES_DIR = os.path.join(BASE_DIR, 'suites')
+STATICS_DIR = os.path.join(BASE_DIR, 'statics')

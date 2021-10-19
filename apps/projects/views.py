@@ -1,3 +1,6 @@
+import os
+from datetime import datetime
+
 from django.http import JsonResponse, HttpResponse, Http404
 from django.shortcuts import render
 from django.views import View
@@ -22,8 +25,12 @@ from rest_framework.authentication import SessionAuthentication, BasicAuthentica
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 import json
-from projects.serializers import ProjectSerializer,ProjectNameSerializer,InterfacesSerializer
+from projects.serializers import ProjectSerializer,ProjectNamesSerializer,InterfacesSerializer, ProjectsRunSerializer, ProjectModelSerializer
 from utils.pagination import PageNumberPagination
+from envs.models import Envs
+from hcjProject import settings
+from testcases.models import Testcases
+from utils import common
 
 
 # Create your views here.
@@ -55,7 +62,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     #         raise Http404
 
     queryset = Projects.objects.all()
-    serializer_class = ProjectSerializer
+    serializer_class = ProjectModelSerializer
     lookup_field = 'id'
     search_fields = ['name', 'leader']
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -84,6 +91,42 @@ class ProjectViewSet(viewsets.ModelViewSet):
         pro.data = pro.data.get('interfaces')
         return Response(pro.data)
 
+    @action(methods=['POST'], detail=True)
+    def run(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        env_id = serializer.validated_data.get('env_id')
+        env = Envs.objects.get(id=env_id)
+
+        testcase_dir_path = os.path.join(settings.SUITES_DIR, datetime.strftime(datetime.now(), '%Y%m%d%H%M%S'))
+        os.makedirs(testcase_dir_path)
+
+        interfaces_qs = Interfaces.objects.filter(project=instance)
+        if not interfaces_qs.exists():
+            data = {
+                'ret': False,
+                'msg': '此项目下无接口，无法运行'
+            }
+            return Response(data)
+
+        runnable_testcase_obj = []
+        for interface_obj in interfaces_qs:
+            testcase_qs = Testcases.objects.filter(interface=interface_obj)
+            if not testcase_qs.exists():
+                runnable_testcase_obj.extend(list(testcase_qs))
+
+        if len(runnable_testcase_obj) == 0:
+            data = {
+                'ret': False,
+                'msg': '此项目下无用例，无法运行'
+            }
+            return Response(data)
+
+        for testcase_obj in runnable_testcase_obj:
+            common.generate_testcase_file(testcase_obj, env, testcase_dir_path)
+
+        return common.run_testcase(instance, testcase_dir_path)
     # @action(methods=['GET'], detail=True)
     # def projects(self, request, *args, **kwargs):
     #     pro = self.get_object()
@@ -92,9 +135,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == 'names':
-            return ProjectNameSerializer
+            return ProjectNamesSerializer
         elif self.action == 'interfaces':
             return InterfacesSerializer
+        elif self.action == 'run':
+            return ProjectsRunSerializer
         else:
             return self.serializer_class
 

@@ -36,6 +36,9 @@ urlpatterns = [
     path('<int:id>/interfaces/', views.ProjectViewSet.as_view({
         'get': 'interfaces'
     })),
+    path('<int:id>/run/', views.ProjectViewSet.as_view({
+        'post': 'run'
+    })),
 ]
 
 

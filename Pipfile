@@ -13,6 +13,10 @@ pygments = "*"
 drf-yasg = "*"
 django-cors-headers = "*"
 pyyaml = "*"
+httprunner = "==1.5.8"
+django-celery = "*"
+redis = "*"
+msgpack = "*"
 
 [dev-packages]
 

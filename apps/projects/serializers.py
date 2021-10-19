@@ -4,6 +4,8 @@ from .models import Projects
 from interfaces.models import Interfaces
 from interfaces.serializers import InterfaceModelSerializer
 from interfaces.models import Interfaces
+from debugtalks.models import Debugtalks
+from utils.validates import is_existed_env_id
 
 # def is_contains_word(value):
 #     if '花花' not in value:
@@ -73,18 +75,40 @@ class ProjectSerializer(serializers.ModelSerializer):
     #     return instance
 
 
-class ProjectNameSerializer(serializers.ModelSerializer):
+class ProjectModelSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=30, label="项目名称", help_text="项目名称", min_length=5,
+                                 validators=[UniqueValidator(Projects.objects.all(), message="")],
+                                 error_messages={
+                                     "max_length": "项目名只能小于等于10位",
+                                     "min_length": "项目名不能小于5位",
+                                     "required": "该字段是必填的，不能为空"
+                                 })
+    leader = serializers.CharField(max_length=8, label="项目负责人", help_text="项目负责人", min_length=5)
+    desc = serializers.CharField(label="项目描述", help_text="项目描述", allow_null=True, allow_blank=True, default='')
+    create_time = serializers.DateTimeField(read_only=True, format="%Y-%m-%d %H:%M:%S")
+
+    class Meta:
+        model = Projects
+        exclude = ('update_time',)
+
+    def create(self, validated_data):
+        project = super().create(validated_data)
+        Debugtalks.objects.create(project_id=project.id)
+        return project
+
+
+class ProjectNamesSerializer(serializers.ModelSerializer):
 
     # email = serializers.CharField(write_only=True)
 
     class Meta:
         model = Projects
-        fields = ('name',)
+        fields = ('id', 'name')
         # exclude = ('leader',)
         # fields = '__all__'
 
 
-class InterfacesNamesSerialzer(serializers.ModelSerializer):
+class InterfacesNamesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Interfaces
@@ -93,10 +117,16 @@ class InterfacesNamesSerialzer(serializers.ModelSerializer):
 
 class InterfacesSerializer(serializers.ModelSerializer):
 
-    interfaces = InterfacesNamesSerialzer(read_only=True, many=True)
+    interfaces = InterfacesNamesSerializer(label="接口信息", help_text="接口信息", read_only=True, many=True)
 
     class Meta:
         model = Projects
         fields = ('interfaces',)
 
 
+class ProjectsRunSerializer(serializers.ModelSerializer):
+    env_id = serializers.IntegerField(write_only=True,validators=[is_existed_env_id])
+
+    class Meta:
+        model = Projects
+        fields = ('id', 'env_id')

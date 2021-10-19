@@ -1,5 +1,5 @@
 from django.db import models
-from utils.common import datetime_fmt
+
 
 
 class BaseModel(models.Model):
